@@ -1,0 +1,140 @@
+name: Build Windows EXE Installer
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies and PyInstaller
+      working-directory: radio_studio
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install PyQt5 pygame requests fastapi uvicorn python-jose passlib python-multipart aiofiles jinja2 pydub numpy sounddevice
+        pip install pyinstaller pillow
+
+    - name: Convert logo PNG to ICO
+      working-directory: radio_studio
+      run: |
+        python -c "
+        from PIL import Image
+        img = Image.open('ui/logo.png').convert('RGBA')
+        sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
+        imgs = [img.resize(s, Image.LANCZOS) for s in sizes]
+        imgs[0].save('ui/logo.ico', format='ICO', sizes=[(i.width,i.height) for i in imgs], append_images=imgs[1:])
+        print('logo.ico created')
+        "
+
+    - name: Build standalone EXE with PyInstaller
+      working-directory: radio_studio
+      run: |
+        pyinstaller --name "MassiveRadio" --onedir --windowed `
+          --icon "ui\logo.ico" `
+          --add-data "ui\logo.png;ui" `
+          --add-data "ui\logo.ico;ui" `
+          --add-data "api_server\templates;api_server\templates" `
+          --add-data "api_server\static;api_server\static" `
+          --add-data "config.json;." `
+          --hidden-import "PyQt5" --hidden-import "pygame" `
+          --hidden-import "sounddevice" --hidden-import "pydub" `
+          --hidden-import "requests" --hidden-import "sqlite3" `
+          --hidden-import "fastapi" --hidden-import "uvicorn" `
+          --hidden-import "jinja2" --hidden-import "passlib" `
+          --hidden-import "passlib.handlers.bcrypt" `
+          --hidden-import "jose" --hidden-import "multipart" `
+          --hidden-import "aiofiles" `
+          --collect-all "PyQt5" --collect-all "pygame" `
+          main.py
+
+    - name: Set up data directories and blank database
+      working-directory: radio_studio
+      run: |
+        python -c "
+        import sqlite3, json
+        from pathlib import Path
+        dist = Path('dist/MassiveRadio')
+        for d in ['data','media','logs','exports']:
+            (dist/d).mkdir(exist_ok=True)
+        cfg = {'db_path':'./data/studio.db','media_folder':'./media','api_url':'','api_token':'','sync_interval_seconds':300,'sync_enabled':False,'crossfade_duration':5.0,'mic_device_index':None,'mic_duck_level':0.15,'mic_duck_ramp_ms':300,'mic_unduck_ramp_ms':600}
+        (dist/'config.json').write_text(json.dumps(cfg,indent=2))
+        con = sqlite3.connect(str(dist/'data'/'studio.db'))
+        con.executescript('''
+        CREATE TABLE IF NOT EXISTS tracks(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,artist TEXT DEFAULT "",duration_sec REAL DEFAULT 0,local_path TEXT,remote_id TEXT,category TEXT DEFAULT "music",last_played TEXT,play_count INTEGER DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS stories(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,body TEXT DEFAULT "",category TEXT DEFAULT "news",priority INTEGER DEFAULT 0,status TEXT DEFAULT "draft",remote_id TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,updated_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS queue(id INTEGER PRIMARY KEY AUTOINCREMENT,track_id INTEGER,position INTEGER DEFAULT 0,scheduled_time TEXT,played INTEGER DEFAULT 0,played_at TEXT);
+        CREATE TABLE IF NOT EXISTS jingle_assignments(button_index INTEGER PRIMARY KEY,track_id INTEGER,label TEXT);
+        CREATE TABLE IF NOT EXISTS campaigns(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,client TEXT DEFAULT "",spots_per_hour INTEGER DEFAULT 1,active INTEGER DEFAULT 1,start_date TEXT,end_date TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS asrun_log(id INTEGER PRIMARY KEY AUTOINCREMENT,track_id INTEGER,campaign_id INTEGER,played_at TEXT DEFAULT CURRENT_TIMESTAMP,deck TEXT DEFAULT "A",duration_sec REAL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS sync_meta(key TEXT PRIMARY KEY,value TEXT);
+        ''')
+        con.commit(); con.close()
+        print('Done')
+        "
+
+    - name: Create Inno Setup installer
+      working-directory: radio_studio
+      shell: powershell
+      run: |
+        $iss = @"
+        [Setup]
+        AppName=Massive Radio Automation System
+        AppVersion=1.0.0
+        AppPublisher=Massive Radio
+        DefaultDirName={autopf}\MassiveRadio
+        DefaultGroupName=Massive Radio Automation System
+        OutputDir=..
+        OutputBaseFilename=MassiveRadio_Setup
+        Compression=lzma2/ultra64
+        SolidCompression=yes
+        WizardStyle=modern
+        SetupIconFile=ui\logo.ico
+        UninstallDisplayIcon={app}\MassiveRadio.exe
+
+        [Languages]
+        Name: "english"; MessagesFile: "compiler:Default.isl"
+
+        [Tasks]
+        Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: checked
+
+        [Files]
+        Source: "dist\MassiveRadio\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+        [Icons]
+        Name: "{group}\Massive Radio Automation System"; Filename: "{app}\MassiveRadio.exe"
+        Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
+        Name: "{commondesktop}\Massive Radio"; Filename: "{app}\MassiveRadio.exe"; Tasks: desktopicon
+
+        [Run]
+        Filename: "{app}\MassiveRadio.exe"; Description: "Launch now"; Flags: nowait postinstall skipifsilent
+        "@
+        $iss | Out-File -FilePath "setup.iss" -Encoding UTF8
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "setup.iss"
+        if (Test-Path "..\MassiveRadio_Setup.exe") {
+          $size = (Get-Item "..\MassiveRadio_Setup.exe").Length / 1MB
+          Write-Host "Installer built: $([math]::Round($size,1)) MB"
+        } else {
+          Write-Host "Inno Setup not found - creating zip instead"
+          Compress-Archive -Path "dist\MassiveRadio\*" -DestinationPath "..\MassiveRadio_Portable.zip"
+        }
+
+    - name: Upload EXE installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: MassiveRadio-Windows-Installer
+        path: |
+          MassiveRadio_Setup.exe
+          MassiveRadio_Portable.zip
+        if-no-files-found: warn
+        retention-days: 90
