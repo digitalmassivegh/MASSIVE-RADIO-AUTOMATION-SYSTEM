@@ -1,0 +1,108 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          MASSIVE RADIO AUTOMATION SYSTEM                        ║
+║          Quick Start Guide                                       ║
+╚══════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 1 — INSTALL  (run once, takes 2–5 minutes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Windows
+   Double-click:  INSTALL.bat
+
+ macOS
+   Double-click:  INSTALL.command
+   If blocked:    Right-click → Open → Open
+
+ Linux
+   Open a terminal in this folder and run:
+   bash install.sh
+
+ If you see "Python not found":
+   Download Python 3.10+ from  https://www.python.org/downloads/
+   Windows: tick "Add Python to PATH" during setup, then re-run INSTALL.bat
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 2 — START THE APP  (every time)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Windows  →  Double-click:  START.bat
+ macOS    →  Double-click:  START.command
+ Linux    →  bash start.sh
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ WHAT GETS INSTALLED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Everything installs INSIDE this folder — nothing is written to the
+ rest of your computer and no admin/root password is required.
+
+ data/       Local broadcast database
+ media/      Audio files for playout
+ logs/       As-run compliance logs
+ venv/       Python environment (auto-created by installer)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FIRST USE — DESKTOP APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ON-AIR PLAYOUT tab
+   • Load a track onto Deck A or Deck B using the LOAD button
+   • Press PLAY — the on-air banner turns red
+   • Crossfade duration is adjustable in the deck controls
+
+ NEWSROOM tab
+   • Type or paste a script into the editor
+   • The amber trigger zone shows when you are near the end
+   • Click CUE to pre-load the next audio item
+
+ COMMERCIALS tab
+   • Add campaigns and assign tracks
+   • The scheduler injects breaks automatically based on the clock
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ CONNECTING TO THE CLOUD API  (optional)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ The desktop works 100% offline by default.
+
+ To sync news stories and tracks from a remote server:
+   1. Open the web dashboard on your Replit / VPS URL
+   2. Register as the first user (POST /auth/register)
+   3. Log in and copy your token (POST /auth/login)
+   4. In the desktop app click  ⚙ Cloud Settings
+   5. Paste the server URL and token → click Save
+
+ The app then syncs every 5 minutes in the background.
+ If internet drops, playout continues uninterrupted from the local DB.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Problem                       Fix
+ ─────────────────────────────────────────────────────────────────
+ "Python not found"            Install from python.org; tick PATH
+ App does not open after       Run INSTALL first, then START
+   double-clicking START
+ No sound / audio errors       Run INSTALL again — it installs
+                               PortAudio automatically
+ Microphone unavailable        PortAudio may not be installed;
+                               re-run INSTALL or see BUILD_INSTRUCTIONS
+ Sync shows "not configured"   Click ⚙ Cloud Settings and fill
+                               in the API URL and token
+ Database locked error         Close any other running instance
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ UNINSTALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Delete this entire folder. Nothing else was written to your computer.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

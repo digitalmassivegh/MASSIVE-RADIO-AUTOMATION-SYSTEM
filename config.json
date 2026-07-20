@@ -1,0 +1,13 @@
+{
+  "db_path": "./data/studio.db",
+  "media_folder": "./media",
+  "api_url": "",
+  "api_token": "",
+  "sync_interval_seconds": 300,
+  "sync_enabled": false,
+  "crossfade_duration": 5.0,
+  "mic_device_index": null,
+  "mic_duck_level": 0.15,
+  "mic_duck_ramp_ms": 300,
+  "mic_unduck_ramp_ms": 600
+}
